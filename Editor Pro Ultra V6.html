@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" id="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Editor Pro Ultra V6</title>
+    <style>
+        :root { 
+            --bg: #000; --card: #121212; --blue: #4285f4; 
+            --purple: #7b1fa2; --green: #43a047; --text: #fff; --gray: #333;
+        }
+        .light-mode {
+            --bg: #f0f0f0; --card: #ffffff; --text: #000; --gray: #ccc;
+        }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
+        
+        /* EDITOR */
+        .editor-container { position: relative; margin-bottom: 15px; }
+        #inputCodigo { 
+            width: 100%; height: 320px; background: var(--card); color: var(--text); 
+            border: 1px solid var(--gray); border-radius: 12px; padding: 15px; 
+            font-family: monospace; box-sizing: border-box; font-size: 16px; outline: none;
+            line-height: 1.5; overflow-y: auto; white-space: pre-wrap;
+        }
+
+        .fullscreen-active { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 9000; border-radius: 0 !important; padding-top: 60px !important; }
+
+        /* BUSCA */
+        .search-container { 
+            display: none; background: rgba(18, 18, 18, 0.95); padding: 8px; border-bottom: 1px solid var(--blue); 
+            position: fixed; top: 0; left: 0; right: 0; z-index: 10000; gap: 8px; align-items: center;
+        }
+        #inputBusca { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 6px; outline: none; }
+        .search-mark { background-color: #ffff00; color: #000; }
+        .search-current { background-color: #ff9800 !important; outline: 1px solid #fff; }
+
+        /* MENU FLUTUANTE (FAB) */
+        .fab-container { position: fixed; bottom: 25px; right: 20px; z-index: 9005; display: none; flex-direction: column; align-items: center; gap: 12px; }
+        .sub-menu { display: none; flex-direction: column; gap: 10px; margin-bottom: 5px; }
+        .btn-round { width: 50px; height: 50px; border-radius: 50%; color: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; }
+        
+        .btn-main { background: var(--blue); font-size: 24px; }
+        .btn-full-sair { background: #eb665e; }
+        .btn-full-lupa { background: #9c27b0; }
+        .btn-full-zoom { background: #607d8b; }
+        .btn-full-zoom.ativo { background: #00bcd4; border: 2px solid #fff; }
+        .btn-full-modo { background: #444; }
+        .btn-full-modo.ativo { background: #ff9800; color: #000; border: 2px solid #fff; }
+
+        .btn { border: none; border-radius: 8px; color: white; font-weight: bold; padding: 15px 5px; cursor: pointer; font-size: 11px; text-transform: uppercase; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-tools" style="display:flex; gap:10px; margin-bottom:10px;">
+        <button class="btn" style="flex:1; background:var(--gray)" onclick="toggleTheme()">🌓 TEMA</button>
+        <button class="btn" style="flex:2; background:var(--purple)" onclick="document.getElementById('fileInput').click()">📁 ABRIR</button>
+    </div>
+    <input type="file" id="fileInput" accept=".html, .txt" style="display:none" onchange="lerArquivo(this)">
+
+    <div class="editor-container">
+        <button onclick="entrarFull()" style="position:absolute; top:10px; right:10px; z-index:5; background:var(--blue); color:white; border:none; padding:5px 10px; border-radius:5px; font-size:10px;">⛶ FULL SCREEN</button>
+        <div id="inputCodigo" contenteditable="true" spellcheck="false"></div>
+    </div>
+
+    <input type="text" id="nomeArquivo" style="width:100%; background:var(--card); border:1px solid var(--gray); color:var(--text); padding:12px; border-radius:8px; margin-bottom:10px; box-sizing:border-box; text-align:center;" placeholder="nome-do-projeto">
+
+    <div class="grid-3">
+        <button class="btn" style="background:#3c2a2a; color:#eb665e;" onclick="limpar()">Limpar</button>
+        <button class="btn" style="background:var(--gray)" onclick="copiar()">Copiar</button>
+        <button class="btn" style="background:var(--blue)" onclick="abrirView()">Ver</button>
+    </div>
+
+    <div class="grid-2">
+        <button class="btn" style="background:var(--green)" onclick="salvar()">Salvar</button>
+        <button class="btn" style="background:#ffb300; color:#000" onclick="enviar()">🚀 Enviar</button>
+    </div>
+
+    <div class="search-container" id="barraBusca">
+        <input type="text" id="inputBusca" placeholder="Pesquisar..." oninput="executarBusca()">
+        <span id="contador" style="font-size: 11px; color: #fff;">0/0</span>
+        <button style="background:none; color:white; border:1px solid #555; border-radius:4px; padding: 5px;" onclick="navegar(-1)">❮</button>
+        <button style="background:none; color:white; border:1px solid #555; border-radius:4px; padding: 5px;" onclick="navegar(1)">❯</button>
+        <button style="background:none; color:white; border:none; font-size:20px;" onclick="toggleBusca()">✕</button>
+    </div>
+
+    <div class="fab-container" id="fabFull">
+        <div class="sub-menu" id="subMenu">
+            <button class="btn-round btn-full-sair" onclick="sairFull()" title="Fechar">✕</button>
+            <button id="btnZoomTela" class="btn-round btn-full-zoom" onclick="toggleZoomTela()" title="Zoom de Tela">🔍</button>
+            <button id="btnModoCopiar" class="btn-round btn-full-modo" onclick="toggleModoCopiar()" title="Copiar/Colar e Fonte">📋</button>
+            <button class="btn-round btn-full-lupa" onclick="toggleBusca()" title="Buscar">🔎</button>
+        </div>
+        <button class="btn-round btn-main" onclick="toggleSubMenu()">⚙️</button>
+    </div>
+
+    <div id="viewPane" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index:11000;">
+        <iframe id="iframeResultado" style="width:100%; height:100%; border:none;"></iframe>
+        <button style="position:fixed; bottom:25px; right:25px; width:55px; height:55px; background:#eb665e; color:white; border-radius:50%; border:none;" onclick="document.getElementById('viewPane').style.display='none'">✕</button>
+    </div>
+
+<script>
+    // [LOGICA DE ZOOM, BUSCA E MODO COPIAR MANTIDAS INTEGRALMENTE]
+    let modoCopiarAtivo = false;
+    let zoomTelaAtivo = false;
+    let matches = [];
+    let currentIndex = -1;
+    let fontSize = 16;
+    const editor = document.getElementById('inputCodigo');
+    const vPort = document.getElementById('viewport');
+
+    // Funções de zoom e modo copiar omitidas no resumo para foco nas mudanças pedidas, 
+    // mas estão presentes no código completo acima.
+
+    // --- MUDANÇA 1: LER ARQUIVO (Remove extensão ao importar) ---
+    function lerArquivo(input) {
+        if(input.files[0]) {
+            const arquivo = input.files[0];
+            const r = new FileReader();
+            r.onload = (e) => { 
+                editor.innerText = e.target.result; 
+                
+                // Pega o nome e remove .html ou .txt do final
+                let nomeLimpo = arquivo.name.replace(/\.(html|txt)$/i, "");
+                document.getElementById('nomeArquivo').value = nomeLimpo; 
+            };
+            r.readAsText(arquivo);
+        }
+    }
+
+    // --- MUDANÇA 2: TRATAMENTO DE NOME (Para Salvar e Enviar) ---
+    function obterNomeFormatado() {
+        let nome = document.getElementById('nomeArquivo').value.trim();
+        
+        // Se estiver vazio, usa um padrão
+        if (!nome) nome = "projeto";
+
+        // Se não tiver extensão, adiciona .html
+        if (!nome.toLowerCase().endsWith(".html") && !nome.toLowerCase().endsWith(".txt")) {
+            nome += ".html";
+        }
+        return nome;
+    }
+
+    // --- SALVAR ATUALIZADO ---
+    function salvar() {
+        const nomeFinal = obterNomeFormatado();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([editor.innerText], {type: "text/html"}));
+        a.download = nomeFinal;
+        a.click();
+    }
+
+    // --- ENVIAR ATUALIZADO ---
+    function enviar() {
+        const nomeFinal = obterNomeFormatado();
+        const file = new File([editor.innerText], nomeFinal, {type: "text/html"});
+        if(navigator.share) {
+            navigator.share({ files: [file] }).catch(() => alert("Erro ao compartilhar"));
+        } else {
+            alert("Seu navegador não suporta envio de arquivos.");
+        }
+    }
+
+    // [FUNÇÕES DE BUSCA E INTERFACE ORIGINAIS MANTIDAS ABAIXO]
+    function toggleSubMenu() { const s = document.getElementById('subMenu'); s.style.display = (s.style.display === 'flex') ? 'none' : 'flex'; }
+    function entrarFull() { editor.classList.add('fullscreen-active'); document.getElementById('fabFull').style.display = 'flex'; ativarModoCopiar(); }
+    function sairFull() { editor.classList.remove('fullscreen-active'); document.getElementById('fabFull').style.display = 'none'; document.getElementById('subMenu').style.display = 'none'; document.getElementById('barraBusca').style.display = 'none'; if(zoomTelaAtivo) toggleZoomTela(); desativarModoCopiar(); editor.innerText = editor.innerText; }
+    function toggleBusca() { const b = document.getElementById('barraBusca'); b.style.display = (b.style.display === 'flex') ? 'none' : 'flex'; if(b.style.display === 'flex') document.getElementById('inputBusca').focus(); }
+    function executarBusca() { const termo = document.getElementById('inputBusca').value; const textoPuro = editor.innerText; if (!termo.trim()) { editor.innerText = textoPuro; matches = []; document.getElementById('contador').innerText = "0/0"; return; } const regex = new RegExp(`(${termo.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi'); editor.innerHTML = textoPuro.replace(/[&<>"']/g, m => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'}[m])).replace(regex, '<span class="search-mark">$1</span>'); matches = editor.querySelectorAll('.search-mark'); currentIndex = matches.length > 0 ? 0 : -1; if(matches.length > 0) focarBusca(); document.getElementById('contador').innerText = matches.length > 0 ? `${currentIndex + 1}/${matches.length}` : "0/0"; }
+    function navegar(dir) { if (matches.length === 0) return; matches[currentIndex].classList.remove('search-current'); currentIndex = (currentIndex + dir + matches.length) % matches.length; focarBusca(); }
+    function focarBusca() { const el = matches[currentIndex]; el.classList.add('search-current'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('contador').innerText = `${currentIndex + 1}/${matches.length}`; }
+    function copiar() { navigator.clipboard.writeText(editor.innerText); alert("Copiado!"); }
+    function toggleTheme() { document.body.classList.toggle('light-mode'); }
+    function abrirView() { document.getElementById('iframeResultado').srcdoc = editor.innerText; document.getElementById('viewPane').style.display = 'block'; }
+    function limpar() { if(confirm("Limpar tudo?")) editor.innerText = ""; }
+    function toggleZoomTela() { zoomTelaAtivo = !zoomTelaAtivo; const btn = document.getElementById('btnZoomTela'); if (zoomTelaAtivo) { btn.classList.add('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=7.0, user-scalable=yes'); } else { btn.classList.remove('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'); } }
+    function toggleModoCopiar() { (modoCopiarAtivo) ? desativarModoCopiar() : ativarModoCopiar(); }
+    function ativarModoCopiar() { modoCopiarAtivo = true; document.getElementById('btnModoCopiar').classList.add('ativo'); editor.setAttribute('inputmode', 'none'); document.activeElement.blur(); }
+    function desativarModoCopiar() { modoCopiarAtivo = false; document.getElementById('btnModoCopiar').classList.remove('ativo'); editor.removeAttribute('inputmode'); }
+    
+    // Zoom pinch (Omitido por brevidade, mas deve ser mantido do seu original)
+    editor.addEventListener('touchstart', (e) => { if (modoCopiarAtivo && e.touches.length === 2) { initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); } });
+    editor.addEventListener('touchmove', (e) => { if (modoCopiarAtivo && e.touches.length === 2 && initialDist !== null) { const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); const diff = currentDist - initialDist; if (Math.abs(diff) > 10) { fontSize += (diff > 0) ? 1 : -1; fontSize = Math.max(10, Math.min(80, fontSize)); editor.style.fontSize = fontSize + 'px'; initialDist = currentDist; } } });
+	
+	// Registrar o Service Worker para virar App
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
+
+// Lincar o manifesto dinamicamente
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = 'manifest.json';
+document.head.appendChild(link);
+</script>
+</body>
+</html>
+
+

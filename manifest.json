@@ -1,0 +1,15 @@
+{
+  "name": "Editor Pro Ultra V6",
+  "short_name": "EditorPro",
+  "start_url": "Editor Pro Ultra V6.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#4285f4",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5968/5968243.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

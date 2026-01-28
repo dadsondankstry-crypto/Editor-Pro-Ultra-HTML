@@ -1,7 +1,7 @@
 {
   "name": "Editor Pro Ultra V6",
   "short_name": "EditorPro",
-  "start_url": "Editor Pro Ultra V6.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#4285f4",

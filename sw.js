@@ -1,6 +1,6 @@
 const CACHE_NAME = 'editor-v6-cache';
 const assets = [
-  './Editor Pro Ultra V6.html',
+  './index.html',
   './manifest.json'
 ];
 

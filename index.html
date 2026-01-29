@@ -161,8 +161,33 @@
 
     // [FUNÇÕES DE BUSCA E INTERFACE ORIGINAIS MANTIDAS ABAIXO]
     function toggleSubMenu() { const s = document.getElementById('subMenu'); s.style.display = (s.style.display === 'flex') ? 'none' : 'flex'; }
-    function entrarFull() { editor.classList.add('fullscreen-active'); document.getElementById('fabFull').style.display = 'flex'; ativarModoCopiar(); }
-    function sairFull() { editor.classList.remove('fullscreen-active'); document.getElementById('fabFull').style.display = 'none'; document.getElementById('subMenu').style.display = 'none'; document.getElementById('barraBusca').style.display = 'none'; if(zoomTelaAtivo) toggleZoomTela(); desativarModoCopiar(); editor.innerText = editor.innerText; }
+    function entrarFull() {
+    editor.classList.add('fullscreen-active');
+    document.getElementById('fabFull').style.display = 'flex';
+    ativarModoCopiar();
+    
+    // Adiciona estado ao histórico para o gesto "voltar" sair do FullScreen
+    history.pushState({ mode: 'fullscreen' }, "");
+}
+    function sairFull() {
+    // Se o usuário clicar no botão "X" manualmente, precisamos tirar o estado do histórico
+    if (history.state && history.state.mode === 'fullscreen') {
+        history.back();
+    }
+    processarSaidaFull();
+}
+
+// Função interna para limpar a interface ao sair
+function processarSaidaFull() {
+    editor.classList.remove('fullscreen-active');
+    document.getElementById('fabFull').style.display = 'none';
+    document.getElementById('subMenu').style.display = 'none';
+    document.getElementById('barraBusca').style.display = 'none';
+    if(zoomTelaAtivo) toggleZoomTela();
+    desativarModoCopiar();
+    // Força refresh do conteúdo para limpar marcações de busca
+    editor.innerText = editor.innerText;
+}
     function toggleBusca() { const b = document.getElementById('barraBusca'); b.style.display = (b.style.display === 'flex') ? 'none' : 'flex'; if(b.style.display === 'flex') document.getElementById('inputBusca').focus(); }
     function executarBusca() { const termo = document.getElementById('inputBusca').value; const textoPuro = editor.innerText; if (!termo.trim()) { editor.innerText = textoPuro; matches = []; document.getElementById('contador').innerText = "0/0"; return; } const regex = new RegExp(`(${termo.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi'); editor.innerHTML = textoPuro.replace(/[&<>"']/g, m => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'}[m])).replace(regex, '<span class="search-mark">$1</span>'); matches = editor.querySelectorAll('.search-mark'); currentIndex = matches.length > 0 ? 0 : -1; if(matches.length > 0) focarBusca(); document.getElementById('contador').innerText = matches.length > 0 ? `${currentIndex + 1}/${matches.length}` : "0/0"; }
     function navegar(dir) { if (matches.length === 0) return; matches[currentIndex].classList.remove('search-current'); currentIndex = (currentIndex + dir + matches.length) % matches.length; focarBusca(); }
@@ -176,17 +201,23 @@ function abrirView() {
     document.getElementById('iframeResultado').srcdoc = editor.innerText;
     pane.style.display = 'block';
 
-    // Cria um estado no histórico para que o "voltar" não saia da página
-    history.pushState({ viewOpen: true }, "");
+    // Adiciona estado ao histórico para o gesto "voltar" fechar o preview
+    history.pushState({ mode: 'preview' }, "");
 }
 
-// Escuta o evento de "voltar" do navegador/celular
+// O "Cérebro" que escuta o gesto de voltar do celular
 window.onpopstate = function(event) {
     const pane = document.getElementById('viewPane');
     
-    // Se a janela de visualização estiver aberta, fecha ela
+    // 1. Se o Preview estiver aberto, fecha ele
     if (pane.style.display === 'block') {
         pane.style.display = 'none';
+        return;
+    }
+
+    // 2. Se o Full Screen estiver ativo, sai dele
+    if (editor.classList.contains('fullscreen-active')) {
+        processarSaidaFull();
     }
 };
     function limpar() { if(confirm("Limpar tudo?")) editor.innerText = ""; }

@@ -198,11 +198,21 @@ function processarSaidaFull() {
 
 function abrirView() {
     const pane = document.getElementById('viewPane');
-    document.getElementById('iframeResultado').srcdoc = editor.innerText;
+    const iframe = document.getElementById('iframeResultado');
+    const codigo = editor.innerText || editor.textContent;
+
+    // 1. Primeiro injeta o conteúdo
+    iframe.srcdoc = codigo;
+    
+    // 2. Exibe o painel
     pane.style.display = 'block';
 
-    // Adiciona estado ao histórico para o gesto "voltar" fechar o preview
-    history.pushState({ mode: 'preview' }, "");
+    // 3. Adiciona o estado ao histórico (com um pequeno delay para garantir o funcionamento)
+    setTimeout(() => {
+        if (!history.state || history.state.mode !== 'preview') {
+            history.pushState({ mode: 'preview' }, "");
+        }
+    }, 50);
 }
 
 // O "Cérebro" que escuta o gesto de voltar do celular

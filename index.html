@@ -95,12 +95,7 @@
         </div>
         <button class="btn-round btn-main" onclick="toggleSubMenu()">⚙️</button>
     </div>
-
-    <div id="viewPane" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index:11000;">
-        <iframe id="iframeResultado" style="width:100%; height:100%; border:none;"></iframe>
-        <button style="position:fixed; bottom:25px; right:25px; width:55px; height:55px; background:#eb665e; color:white; border-radius:50%; border:none;" onclick="document.getElementById('viewPane').style.display='none'">✕</button>
-    </div>
-
+   
 <script>
     // [LOGICA DE ZOOM, BUSCA E MODO COPIAR MANTIDAS INTEGRALMENTE]
     let modoCopiarAtivo = false;
@@ -174,7 +169,26 @@
     function focarBusca() { const el = matches[currentIndex]; el.classList.add('search-current'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('contador').innerText = `${currentIndex + 1}/${matches.length}`; }
     function copiar() { navigator.clipboard.writeText(editor.innerText); alert("Copiado!"); }
     function toggleTheme() { document.body.classList.toggle('light-mode'); }
-    function abrirView() { document.getElementById('iframeResultado').srcdoc = editor.innerText; document.getElementById('viewPane').style.display = 'block'; }
+    // --- MUDANÇA PARA FECHAR COM GESTO DE VOLTAR ---
+
+function abrirView() {
+    const pane = document.getElementById('viewPane');
+    document.getElementById('iframeResultado').srcdoc = editor.innerText;
+    pane.style.display = 'block';
+
+    // Cria um estado no histórico para que o "voltar" não saia da página
+    history.pushState({ viewOpen: true }, "");
+}
+
+// Escuta o evento de "voltar" do navegador/celular
+window.onpopstate = function(event) {
+    const pane = document.getElementById('viewPane');
+    
+    // Se a janela de visualização estiver aberta, fecha ela
+    if (pane.style.display === 'block') {
+        pane.style.display = 'none';
+    }
+};
     function limpar() { if(confirm("Limpar tudo?")) editor.innerText = ""; }
     function toggleZoomTela() { zoomTelaAtivo = !zoomTelaAtivo; const btn = document.getElementById('btnZoomTela'); if (zoomTelaAtivo) { btn.classList.add('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=7.0, user-scalable=yes'); } else { btn.classList.remove('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'); } }
     function toggleModoCopiar() { (modoCopiarAtivo) ? desativarModoCopiar() : ativarModoCopiar(); }

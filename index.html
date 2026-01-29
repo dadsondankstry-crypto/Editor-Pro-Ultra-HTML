@@ -22,34 +22,29 @@
             font-family: monospace; box-sizing: border-box; font-size: 16px; outline: none;
             line-height: 1.5; overflow-y: auto; white-space: pre-wrap;
         }
-
         .fullscreen-active { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 9000; border-radius: 0 !important; padding-top: 60px !important; }
 
-        /* BUSCA */
-        .search-container { 
-            display: none; background: rgba(18, 18, 18, 0.95); padding: 8px; border-bottom: 1px solid var(--blue); 
-            position: fixed; top: 0; left: 0; right: 0; z-index: 10000; gap: 8px; align-items: center;
+        /* MODAL DE COMMIT (ESTILO GITHUB) */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 12000; align-items: center; justify-content: center;
         }
-        #inputBusca { flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 6px; outline: none; }
-        .search-mark { background-color: #ffff00; color: #000; }
-        .search-current { background-color: #ff9800 !important; outline: 1px solid #fff; }
+        .modal-content {
+            background: var(--card); border: 1px solid var(--gray); border-radius: 12px;
+            width: 90%; max-width: 450px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-content h3 { margin: 0 0 10px 0; font-size: 18px; color: var(--blue); }
+        .modal-content textarea {
+            width: 100%; height: 100px; background: #1e1e1e; color: #fff; border: 1px solid #444;
+            border-radius: 8px; padding: 12px; margin: 10px 0; font-family: sans-serif; resize: none; box-sizing: border-box;
+        }
 
-        /* MENU FLUTUANTE (FAB) */
-        .fab-container { position: fixed; bottom: 25px; right: 20px; z-index: 9005; display: none; flex-direction: column; align-items: center; gap: 12px; }
-        .sub-menu { display: none; flex-direction: column; gap: 10px; margin-bottom: 5px; }
-        .btn-round { width: 50px; height: 50px; border-radius: 50%; color: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; }
-        
-        .btn-main { background: var(--blue); font-size: 24px; }
-        .btn-full-sair { background: #eb665e; }
-        .btn-full-lupa { background: #9c27b0; }
-        .btn-full-zoom { background: #607d8b; }
-        .btn-full-zoom.ativo { background: #00bcd4; border: 2px solid #fff; }
-        .btn-full-modo { background: #444; }
-        .btn-full-modo.ativo { background: #ff9800; color: #000; border: 2px solid #fff; }
-
+        /* BOTÕES E GRIDS */
         .btn { border: none; border-radius: 8px; color: white; font-weight: bold; padding: 15px 5px; cursor: pointer; font-size: 11px; text-transform: uppercase; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-round { width: 50px; height: 50px; border-radius: 50%; color: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; }
+        .fab-container { position: fixed; bottom: 25px; right: 20px; z-index: 9005; display: none; flex-direction: column; gap: 12px; }
     </style>
 </head>
 <body>
@@ -78,203 +73,122 @@
         <button class="btn" style="background:#ffb300; color:#000" onclick="enviar()">🚀 Enviar</button>
     </div>
 
-    <div class="search-container" id="barraBusca">
-        <input type="text" id="inputBusca" placeholder="Pesquisar..." oninput="executarBusca()">
-        <span id="contador" style="font-size: 11px; color: #fff;">0/0</span>
-        <button style="background:none; color:white; border:1px solid #555; border-radius:4px; padding: 5px;" onclick="navegar(-1)">❮</button>
-        <button style="background:none; color:white; border:1px solid #555; border-radius:4px; padding: 5px;" onclick="navegar(1)">❯</button>
-        <button style="background:none; color:white; border:none; font-size:20px;" onclick="toggleBusca()">✕</button>
+    <div id="modalCommit" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle">Commit changes</h3>
+            <p style="font-size: 12px; color: #888;">Mensagem de alteração sugerida:</p>
+            <textarea id="msgCommit"></textarea>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn" style="background:#444; padding: 10px 20px;" onclick="fecharModal()">Cancelar</button>
+                <button class="btn" style="background:var(--green); padding: 10px 20px;" id="btnConfirmarCommit">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewPane" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index:11000;">
+        <iframe id="iframeResultado" style="width:100%; height:100%; border:none;"></iframe>
     </div>
 
     <div class="fab-container" id="fabFull">
-        <div class="sub-menu" id="subMenu">
-            <button class="btn-round btn-full-sair" onclick="sairFull()" title="Fechar">✕</button>
-            <button id="btnZoomTela" class="btn-round btn-full-zoom" onclick="toggleZoomTela()" title="Zoom de Tela">🔍</button>
-            <button id="btnModoCopiar" class="btn-round btn-full-modo" onclick="toggleModoCopiar()" title="Copiar/Colar e Fonte">📋</button>
-            <button class="btn-round btn-full-lupa" onclick="toggleBusca()" title="Buscar">🔎</button>
-        </div>
-        <button class="btn-round btn-main" onclick="toggleSubMenu()">⚙️</button>
+        <button class="btn-round" style="background:#eb665e" onclick="sairFull()">✕</button>
     </div>
-   
+
 <script>
-    // [LOGICA DE ZOOM, BUSCA E MODO COPIAR MANTIDAS INTEGRALMENTE]
-    let modoCopiarAtivo = false;
-    let zoomTelaAtivo = false;
-    let matches = [];
-    let currentIndex = -1;
-    let fontSize = 16;
+    let textoOriginal = ""; 
     const editor = document.getElementById('inputCodigo');
-    const vPort = document.getElementById('viewport');
 
-    // Funções de zoom e modo copiar omitidas no resumo para foco nas mudanças pedidas, 
-    // mas estão presentes no código completo acima.
+    // --- LÓGICA DE DETECÇÃO DE MUDANÇAS ---
+    function gerarDescricaoMudanca() {
+        const atual = editor.innerText;
+        if (atual === textoOriginal) return "No changes detected.";
+        const diff = atual.length - textoOriginal.length;
+        const acao = diff > 0 ? "Added" : "Removed";
+        return `Update ${obterNomeFormatado()}: ${acao} ${Math.abs(diff)} characters.`;
+    }
 
-    // --- MUDANÇA 1: LER ARQUIVO (Remove extensão ao importar) ---
+    function abrirModalCommit(titulo, callback) {
+        document.getElementById('modalTitle').innerText = titulo;
+        document.getElementById('msgCommit').value = gerarDescricaoMudanca();
+        document.getElementById('modalCommit').style.display = 'flex';
+        document.getElementById('btnConfirmarCommit').onclick = () => {
+            callback();
+            fecharModal();
+        };
+    }
+
+    function fecharModal() { document.getElementById('modalCommit').style.display = 'none'; }
+
+    // --- SALVAR E ENVIAR COM COMMIT ---
+    function salvar() {
+        abrirModalCommit("Save to Device", () => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([editor.innerText], {type: "text/html"}));
+            a.download = obterNomeFormatado();
+            a.click();
+            textoOriginal = editor.innerText;
+        });
+    }
+
+    function enviar() {
+        abrirModalCommit("Share Project", () => {
+            const file = new File([editor.innerText], obterNomeFormatado(), {type: "text/html"});
+            if(navigator.share) {
+                navigator.share({ files: [file], title: 'Commit: ' + document.getElementById('msgCommit').value });
+            } else {
+                alert("Navegador não suporta compartilhamento.");
+            }
+        });
+    }
+
+    // --- GESTOS DE VOLTAR E ESC ---
+    function abrirView() {
+        document.getElementById('iframeResultado').srcdoc = editor.innerText;
+        document.getElementById('viewPane').style.display = 'block';
+        history.pushState({ mode: 'preview' }, "");
+    }
+
+    function entrarFull() {
+        editor.classList.add('fullscreen-active');
+        document.getElementById('fabFull').style.display = 'flex';
+        history.pushState({ mode: 'fullscreen' }, "");
+    }
+
+    function sairFull() { history.back(); }
+
+    window.onpopstate = function(event) {
+        document.getElementById('viewPane').style.display = 'none';
+        editor.classList.remove('fullscreen-active');
+        document.getElementById('fabFull').style.display = 'none';
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") {
+            if (document.getElementById('viewPane').style.display === 'block' || 
+                editor.classList.contains('fullscreen-active')) history.back();
+        }
+    });
+
+    // --- FUNÇÕES DE ARQUIVO E INTERFACE ---
     function lerArquivo(input) {
         if(input.files[0]) {
-            const arquivo = input.files[0];
             const r = new FileReader();
             r.onload = (e) => { 
                 editor.innerText = e.target.result; 
-                
-                // Pega o nome e remove .html ou .txt do final
-                let nomeLimpo = arquivo.name.replace(/\.(html|txt)$/i, "");
-                document.getElementById('nomeArquivo').value = nomeLimpo; 
+                textoOriginal = e.target.result;
+                document.getElementById('nomeArquivo').value = input.files[0].name.replace(/\.(html|txt)$/i, ""); 
             };
-            r.readAsText(arquivo);
+            r.readAsText(input.files[0]);
         }
     }
 
-    // --- MUDANÇA 2: TRATAMENTO DE NOME (Para Salvar e Enviar) ---
     function obterNomeFormatado() {
-        let nome = document.getElementById('nomeArquivo').value.trim();
-        
-        // Se estiver vazio, usa um padrão
-        if (!nome) nome = "projeto";
-
-        // Se não tiver extensão, adiciona .html
-        if (!nome.toLowerCase().endsWith(".html") && !nome.toLowerCase().endsWith(".txt")) {
-            nome += ".html";
-        }
-        return nome;
+        let n = document.getElementById('nomeArquivo').value.trim() || "projeto";
+        return n.toLowerCase().endsWith(".html") ? n : n + ".html";
     }
 
-    // --- SALVAR ATUALIZADO ---
-    function salvar() {
-        const nomeFinal = obterNomeFormatado();
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([editor.innerText], {type: "text/html"}));
-        a.download = nomeFinal;
-        a.click();
-    }
-
-    // --- ENVIAR ATUALIZADO ---
-    function enviar() {
-        const nomeFinal = obterNomeFormatado();
-        const file = new File([editor.innerText], nomeFinal, {type: "text/html"});
-        if(navigator.share) {
-            navigator.share({ files: [file] }).catch(() => alert("Erro ao compartilhar"));
-        } else {
-            alert("Seu navegador não suporta envio de arquivos.");
-        }
-    }
-
-    // [FUNÇÕES DE BUSCA E INTERFACE ORIGINAIS MANTIDAS ABAIXO]
-    function toggleSubMenu() { const s = document.getElementById('subMenu'); s.style.display = (s.style.display === 'flex') ? 'none' : 'flex'; }
-    function entrarFull() {
-    editor.classList.add('fullscreen-active');
-    document.getElementById('fabFull').style.display = 'flex';
-    ativarModoCopiar();
-    
-    // Adiciona estado ao histórico para o gesto "voltar" sair do FullScreen
-    history.pushState({ mode: 'fullscreen' }, "");
-}
-    function sairFull() {
-    // Se o usuário clicar no botão "X" manualmente, precisamos tirar o estado do histórico
-    if (history.state && history.state.mode === 'fullscreen') {
-        history.back();
-    }
-    processarSaidaFull();
-}
-
-// Função interna para limpar a interface ao sair
-function processarSaidaFull() {
-    editor.classList.remove('fullscreen-active');
-    document.getElementById('fabFull').style.display = 'none';
-    document.getElementById('subMenu').style.display = 'none';
-    document.getElementById('barraBusca').style.display = 'none';
-    if(zoomTelaAtivo) toggleZoomTela();
-    desativarModoCopiar();
-    // Força refresh do conteúdo para limpar marcações de busca
-    editor.innerText = editor.innerText;
-}
-    function toggleBusca() { const b = document.getElementById('barraBusca'); b.style.display = (b.style.display === 'flex') ? 'none' : 'flex'; if(b.style.display === 'flex') document.getElementById('inputBusca').focus(); }
-    function executarBusca() { const termo = document.getElementById('inputBusca').value; const textoPuro = editor.innerText; if (!termo.trim()) { editor.innerText = textoPuro; matches = []; document.getElementById('contador').innerText = "0/0"; return; } const regex = new RegExp(`(${termo.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi'); editor.innerHTML = textoPuro.replace(/[&<>"']/g, m => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'}[m])).replace(regex, '<span class="search-mark">$1</span>'); matches = editor.querySelectorAll('.search-mark'); currentIndex = matches.length > 0 ? 0 : -1; if(matches.length > 0) focarBusca(); document.getElementById('contador').innerText = matches.length > 0 ? `${currentIndex + 1}/${matches.length}` : "0/0"; }
-    function navegar(dir) { if (matches.length === 0) return; matches[currentIndex].classList.remove('search-current'); currentIndex = (currentIndex + dir + matches.length) % matches.length; focarBusca(); }
-    function focarBusca() { const el = matches[currentIndex]; el.classList.add('search-current'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('contador').innerText = `${currentIndex + 1}/${matches.length}`; }
-    function copiar() { navigator.clipboard.writeText(editor.innerText); alert("Copiado!"); }
     function toggleTheme() { document.body.classList.toggle('light-mode'); }
-    // --- MUDANÇA PARA FECHAR COM GESTO DE VOLTAR ---
-
-function abrirView() {
-    const pane = document.getElementById('viewPane');
-    const iframe = document.getElementById('iframeResultado');
-    const codigo = editor.innerText || editor.textContent;
-
-    // 1. Primeiro injeta o conteúdo
-    iframe.srcdoc = codigo;
-    
-    // 2. Exibe o painel
-    pane.style.display = 'block';
-
-    // 3. Adiciona o estado ao histórico (com um pequeno delay para garantir o funcionamento)
-    setTimeout(() => {
-        if (!history.state || history.state.mode !== 'preview') {
-            history.pushState({ mode: 'preview' }, "");
-        }
-    }, 50);
-}
-
-// O "Cérebro" que escuta o gesto de voltar do celular
-window.onpopstate = function(event) {
-    const pane = document.getElementById('viewPane');
-    
-    // 1. Se o Preview estiver aberto, fecha ele
-    if (pane.style.display === 'block') {
-        pane.style.display = 'none';
-        return;
-    }
-
-    // 2. Se o Full Screen estiver ativo, sai dele
-    if (editor.classList.contains('fullscreen-active')) {
-        processarSaidaFull();
-    }
-};
-    function limpar() { if(confirm("Limpar tudo?")) editor.innerText = ""; }
-    function toggleZoomTela() { zoomTelaAtivo = !zoomTelaAtivo; const btn = document.getElementById('btnZoomTela'); if (zoomTelaAtivo) { btn.classList.add('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=7.0, user-scalable=yes'); } else { btn.classList.remove('ativo'); vPort.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'); } }
-    function toggleModoCopiar() { (modoCopiarAtivo) ? desativarModoCopiar() : ativarModoCopiar(); }
-    function ativarModoCopiar() { modoCopiarAtivo = true; document.getElementById('btnModoCopiar').classList.add('ativo'); editor.setAttribute('inputmode', 'none'); document.activeElement.blur(); }
-    function desativarModoCopiar() { modoCopiarAtivo = false; document.getElementById('btnModoCopiar').classList.remove('ativo'); editor.removeAttribute('inputmode'); }
-    
-    // Zoom pinch (Omitido por brevidade, mas deve ser mantido do seu original)
-    editor.addEventListener('touchstart', (e) => { if (modoCopiarAtivo && e.touches.length === 2) { initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); } });
-    editor.addEventListener('touchmove', (e) => { if (modoCopiarAtivo && e.touches.length === 2 && initialDist !== null) { const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); const diff = currentDist - initialDist; if (Math.abs(diff) > 10) { fontSize += (diff > 0) ? 1 : -1; fontSize = Math.max(10, Math.min(80, fontSize)); editor.style.fontSize = fontSize + 'px'; initialDist = currentDist; } } });
-	
-	// Registrar o Service Worker para virar App
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-}
-	// --- ATALHO TECLA BACKSPACE (APAGAR) ---
-
-document.addEventListener('keydown', function(event) {
-    // Verifica se a tecla pressionada é o Backspace (Código 8)
-    if (event.key === "Backspace" || event.keyCode === 8) {
-        
-        const pane = document.getElementById('viewPane');
-        const estaNoEditor = document.activeElement === editor;
-
-        // Se a visualização (Ver) estiver aberta, fecha ela com Backspace
-        if (pane.style.display === 'block') {
-            event.preventDefault(); // Impede que o navegador volte a página anterior
-            history.back(); // Isso dispara o onpopstate que já criamos
-        } 
-        // Se o Full Screen estiver ativo E o usuário NÃO estiver digitando (foco fora)
-        else if (editor.classList.contains('fullscreen-active') && !estaNoEditor) {
-            event.preventDefault();
-            history.back();
-        }
-    }
-});
-
-	
-
-// Lincar o manifesto dinamicamente
-const link = document.createElement('link');
-link.rel = 'manifest';
-link.href = 'manifest.json';
-document.head.appendChild(link);
+    function copiar() { navigator.clipboard.writeText(editor.innerText); alert("Copiado!"); }
+    function limpar() { if(confirm("Limpar tudo?")) { editor.innerText = ""; textoOriginal = ""; } }
 </script>
 </body>
 </html>
-
-

@@ -234,6 +234,29 @@ window.onpopstate = function(event) {
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
+	// --- ATALHO TECLA BACKSPACE (APAGAR) ---
+
+document.addEventListener('keydown', function(event) {
+    // Verifica se a tecla pressionada é o Backspace (Código 8)
+    if (event.key === "Backspace" || event.keyCode === 8) {
+        
+        const pane = document.getElementById('viewPane');
+        const estaNoEditor = document.activeElement === editor;
+
+        // Se a visualização (Ver) estiver aberta, fecha ela com Backspace
+        if (pane.style.display === 'block') {
+            event.preventDefault(); // Impede que o navegador volte a página anterior
+            history.back(); // Isso dispara o onpopstate que já criamos
+        } 
+        // Se o Full Screen estiver ativo E o usuário NÃO estiver digitando (foco fora)
+        else if (editor.classList.contains('fullscreen-active') && !estaNoEditor) {
+            event.preventDefault();
+            history.back();
+        }
+    }
+});
+
+	
 
 // Lincar o manifesto dinamicamente
 const link = document.createElement('link');
